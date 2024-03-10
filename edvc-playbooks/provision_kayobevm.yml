@@ -1,0 +1,308 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    user_home_dir: "{{ ansible_env.HOME }}"
+    user_name: "{{ ansible_env.USER }}"
+    kayobe_base_path: "{{ user_home_dir }}/{{ project_name }}"
+  tasks:
+  - name: Check playbook requirements
+    block:
+    - name: Check running operating system distribution
+      debug: msg="{{ ansible_distribution }}"
+
+    - name: Fail on operating system different than Ubuntu
+      ansible.builtin.fail:
+        msg: The operating system you are using is not supported by this playbook.
+      when: ansible_distribution != "Ubuntu"
+
+    - name: Check running operating system version
+      debug: var=ansible_distribution_version
+
+    - name: "Fail on operating system version different than {{ kayobehost_system_version }}"
+      ansible.builtin.fail:
+        msg: The operating system you are using is not supported by this playbook.
+      when: ansible_distribution_version != kayobehost_system_version|string
+
+    - name: Check if hardware virtualization is enabled
+      ansible.builtin.shell: egrep -i 'svm|vmx' /proc/cpuinfo
+      changed_when: False
+      register: hwv_check
+
+    - name: Fail on disabled hardware virtualization
+      ansible.builtin.fail:
+        msg: Hardware virtualization is disabled or could not be detected.
+      when: hwv_check.rc != 0
+
+  - name: Prepare virtualization and kayobevm
+    block:
+    - name: Install required packages like libvirt and qemu
+      ansible.builtin.apt:
+        name: [qemu-kvm, libvirt-daemon-system, virtinst]
+      become: True
+
+    - name: Ensure .ssh directory exists 
+      ansible.builtin.file:
+        path: "{{ user_home_dir }}/.ssh"
+        state: directory
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+
+    - name: Generate SSH keys 
+      community.crypto.openssh_keypair:
+        path: "{{ user_home_dir }}/.ssh/id_rsa"
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
+        regenerate: never
+      register: generated_keypair
+
+    - name: Ensure kayobevm VM directory exists
+      ansible.builtin.file:
+        path: /var/lib/libvirt/images/kayobevm/
+        state: directory
+      become: True
+
+    - name: Prepare user-data.yml file
+      vars:
+        vm_name: "kayobevm"
+      ansible.builtin.template:
+       src: templates/user-data.yml.j2
+       dest: /var/lib/libvirt/images/kayobevm/user-data.yml
+      become: True
+
+    - name: Prepare network-config.yml file
+      ansible.builtin.template:
+       src: templates/network-config.yml.j2
+       dest: /var/lib/libvirt/images/kayobevm/network-config.yml
+      become: True
+
+    - name: Ensure kayobevm host entry exists in /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ kayobevm_mgmt_ip }} kayobevm"
+      become: True
+
+    - name: Check if libvirt works after installation
+      ansible.builtin.shell: "virsh list --all"
+      register: list_vms_check
+      changed_when: False
+      become: True
+
+    - name: Fail on libvirt not responding
+      ansible.builtin.fail:
+        msg: Libvirt has not responded to listing all VMs.
+      when: list_vms_check.rc != 0
+
+    - name: Ensure kayobevm instance is destroyed
+      ansible.builtin.shell: "virsh destroy kayobevm"
+      register: kayobevm_destroy
+      failed_when: False
+      changed_when: kayobevm_destroy.rc == 0
+      become: True
+
+    - name: Undefine existing kayobevm instance
+      ansible.builtin.shell: "virsh undefine kayobevm --remove-all-storage"
+      register: kayobevm_undefine
+      failed_when: False
+      changed_when: kayobevm_undefine.rc == 0
+      become: True
+
+    - name: Clear ssh known_hosts after undefining
+      ansible.builtin.shell:
+        cmd: "ssh-keygen -f {{ user_home_dir }}/.ssh/known_hosts -R kayobevm"
+      when: kayobevm_undefine.rc == 0
+
+    - name: Download Ubuntu Jammy cloud image
+      ansible.builtin.get_url:
+        dest: /var/lib/libvirt/images/jammy-server-cloudimg-amd64.img
+        url: https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
+        checksum: sha256:https://cloud-images.ubuntu.com/jammy/current/SHA256SUMS
+      become: True
+
+    - name: Copy over Ubuntu image to VM directory
+      ansible.builtin.copy:
+        src: /var/lib/libvirt/images/jammy-server-cloudimg-amd64.img
+        dest: /var/lib/libvirt/images/kayobevm/kayobevm.qcow2
+        force: True
+      become: True
+
+    - name: "Ensure {{ kayobevm_disk_size_gb }}G kayobevm disk image size limit"
+      ansible.builtin.shell: "qemu-img resize /var/lib/libvirt/images/kayobevm/kayobevm.qcow2 {{ kayobevm_disk_size_gb }}G"
+      become: True
+
+    - name: Check if mountpoint /var/lib/ provides needed disk space
+      ansible.builtin.shell: df /var/lib/ --output\=avail | tail -1
+      changed_when: False
+      register: var_lib_disk_available
+
+    - name: Fail on insufficient disk space in /var/lib/
+      ansible.builtin.fail:
+        msg: "Disk space in /var/lib/ is less than required {{ kayobevm_disk_size_gb }}, which is required for kayobevm vm."
+      when: var_lib_disk_available.stdout|float < kayobevm_disk_size_gb * 1000000
+
+  - name: Reconfigure networking
+    when: ansible_default_ipv4.interface != "mgmtbr"
+    block:
+    - name: Push netplan configuration file
+      ansible.builtin.template:
+       src: "templates/01-kayobe-config.yaml.j2"
+       dest: "/etc/netplan/01-kayobe-config.yaml"
+      become: True
+
+    - name: Run netplan apply
+      ansible.builtin.shell: netplan apply
+      become: True
+
+  - name: Create VM
+    ansible.builtin.shell:
+      cmd: >
+        sudo virt-install
+        --name kayobevm
+        --memory {{ kayobevm_ram }}
+        --vcpus {{ kayobevm_cpus }}
+        --disk path=/var/lib/libvirt/images/kayobevm/kayobevm.qcow2,size={{ kayobevm_disk_size_gb }}
+        --os-variant ubuntu22.04
+        --network bridge=mgmtbr,mac=fa:69:6d:67:6d:74,model=virtio
+        --network bridge=idracbr,mac=fa:69:64:72:61:63,model=virtio
+        --graphics none
+        --events on_reboot=restart
+        --virt-type kvm
+        --console pty,target_type=serial
+        --cloud-init user-data=/var/lib/libvirt/images/kayobevm/user-data.yml,network-config=/var/lib/libvirt/images/kayobevm/network-config.yml
+        --autostart
+        --noautoconsole
+        --import
+
+  - name: Wait for kayobevm to be reachable
+    ansible.builtin.wait_for:
+      host: kayobevm
+      port: 22
+      delay: 20
+
+  - name: Add ssh fingerprints
+    ansible.builtin.shell:
+      cmd: |
+        ssh-keygen -f {{ user_home_dir }}/.ssh/known_hosts -R kayobevm
+        ssh-keygen -f {{ user_home_dir }}/.ssh/known_hosts -R {{ kayobevm_mgmt_ip }}
+        ssh-keyscan -H kayobevm >> {{ user_home_dir }}/.ssh/known_hosts
+        ssh-keyscan -H {{ kayobevm_mgmt_ip }} >> {{ user_home_dir }}/.ssh/known_hosts
+
+- hosts: kayobevm
+  gather_facts: true
+  vars:
+    user_home_dir: "/home/{{ kayobe_user }}"
+    user_name: "{{ kayobe_user }}"
+    kayobe_base_path: "{{ user_home_dir }}/{{ project_name }}"
+  tasks:
+  - name: Install and preconfigure Kayobe
+    block:
+    - name: Rsync local config to kayobevm
+      ansible.builtin.shell:
+        cmd: "rsync -av ~/{{ project_name }} kayobevm:~"
+      args:
+        executable: /bin/bash
+      delegate_to: localhost
+
+    - name: Install pip and venv
+      ansible.builtin.apt:
+        name: [python3-pip, python3-venv]
+        update_cache: true
+      become: True
+
+    - name: Create src and venvs directory
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory 
+      loop:
+        - "{{ kayobe_base_path }}/src"
+        - "{{ kayobe_base_path }}/venvs"
+
+    - name: Git clone kayobe from opendev.org
+      ansible.builtin.git:
+        repo: https://opendev.org/openstack/kayobe.git
+        version: stable/2023.2
+        dest: "{{ kayobe_base_path }}/src/kayobe"
+
+    - name: Ensure kayobe venv is removed for full venv recreation
+      ansible.builtin.file:
+        path: "{{ kayobe_base_path }}/venvs/kayobe"
+        state: absent
+
+    - name: Create Kayobe venv
+      ansible.builtin.shell: "python3 -m venv {{ kayobe_base_path }}/venvs/kayobe"
+
+    - name: Install Kayobe with command
+      ansible.builtin.shell:
+        cmd: |
+          source {{ kayobe_base_path }}/venvs/kayobe/bin/activate &&
+          pip install -e .
+        chdir: "{{ kayobe_base_path }}/src/kayobe"
+      args:
+        executable: /bin/bash
+
+    - name: Ensure kayobe complete entries are written
+      ansible.builtin.shell:
+        cmd: |
+          source {{ kayobe_base_path }}/venvs/kayobe/bin/activate &&
+          kayobe complete > {{ kayobe_base_path }}/src/kayobe/kayobe-complete
+      changed_when: False
+      args:
+        executable: /bin/bash
+
+    - name: Prepare .profile file
+      ansible.builtin.blockinfile:
+        path: "{{ user_home_dir }}/.profile" 
+        block: |
+          export KAYOBE_BASE_PATH={{ kayobe_base_path }}
+
+          source $KAYOBE_BASE_PATH/venvs/kayobe/bin/activate
+          source $KAYOBE_BASE_PATH/src/kayobe/kayobe-complete
+          source $KAYOBE_BASE_PATH/kayobe-env
+
+          alias ll='ls -lhA'
+
+          alias kayobeconf="grep --color=always -Irnve '^$\|^#' $KAYOBE_CONFIG_PATH/* |
+            grep -v '\-\-\-\|8743\|passwords.yml\|autocomplete\|kayobe-env' |
+            sed -e 's|$KAYOBE_CONFIG_PATH/||'"
+
+  # - name: Deploy custom kayobe configs
+  #   ansible.builtin.template:
+  #     src: "{{ item.src }}"
+  #     dest: "{{ kayobe_base_path }}/etc/kayobe/{{ item.path | regex_replace('\\.j2$','') }}"
+  #   with_community.general.filetree: "{{ kayobe_base_path }}/etc/kayobe/"
+  #   when:
+  #     - item.state == 'file'
+  #     - item.src | regex_search('.j2')
+
+  - name: Kayobe control host bootstrap
+    ansible.builtin.shell:
+      cmd: |
+        source {{ user_home_dir }}/.profile &&
+        kayobe control host bootstrap
+    args:
+      executable: /bin/bash
+
+  - name: Kayobe seed host configure
+    ansible.builtin.shell:
+      cmd: |
+        source {{ user_home_dir }}/.profile &&
+        kayobe seed host configure
+    args:
+      executable: /bin/bash
+
+  - name: re-add ubuntu to docker group
+    ansible.builtin.shell:
+      cmd: "sudo usermod -aG docker ubuntu"
+
+  - name: Reset ssh connection to allow user changes to affect ansible user
+    ansible.builtin.meta:
+      reset_connection
+
+  - name: Kayobe seed service deploy
+    ansible.builtin.shell:
+      cmd: |
+        source {{ user_home_dir }}/.profile &&
+        kayobe seed service deploy
+    args:
+      executable: /bin/bash

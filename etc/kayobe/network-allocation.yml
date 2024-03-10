@@ -1,0 +1,5 @@
+---
+mgmt_ips:
+  kayobevm: 192.168.4.11
+idrac_ips:
+  kayobevm: 192.168.3.11

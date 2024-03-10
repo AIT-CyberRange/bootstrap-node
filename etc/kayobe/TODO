@@ -1,0 +1,10 @@
+set kayobevm hostname in cloud-init
+check if deployment_image will work
+set up map in overcloud.csv
+ipmi and idrac setup
+switches maybe
+configure ntp:
+  client-systems
+    -> controllers x3
+      -> all nodes
+
