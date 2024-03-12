@@ -1,0 +1,18 @@
+#network-config
+version: 2
+ethernets:
+  {{ kayobevm_mgmt_nic }}:
+    dhcp4: false
+    addresses: [{{ kayobevm_mgmt_ip }}/{{ management_netmask }}]
+    gateway4: {{ management_gw }}
+    nameservers:
+      addresses: [{{ management_dns }}]
+    match:
+      macaddress: "fa:69:6d:67:6d:74"
+    set-name: enp1s0
+  {{ kayobevm_idrac_nic }}:
+    dhcp4: false
+    addresses: [{{ kayobevm_idrac_ip }}/{{ idrac_netmask }}]
+    match:
+      macaddress: "fa:69:64:72:61:63"
+    set-name: enp2s0

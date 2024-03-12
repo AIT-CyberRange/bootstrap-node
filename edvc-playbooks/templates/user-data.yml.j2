@@ -1,0 +1,15 @@
+#cloud-config
+hostname: {{ vm_name }}
+groups:
+  - docker
+users:
+  - name: ubuntu
+    ssh_authorized_keys: 
+      - {{ generated_keypair.public_key }}
+    shell: /bin/bash
+    groups: sudo,docker
+    sudo: ALL=(ALL) NOPASSWD:ALL
+runcmd:
+  - echo "Defaults !fqdn" >> /etc/sudoers
+  - touch /etc/cloud/cloud-init.disabled
+  - apt-get -y -qq remove unattended-upgrades
