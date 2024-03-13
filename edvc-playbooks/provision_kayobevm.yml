@@ -266,15 +266,6 @@
             grep -v '\-\-\-\|8743\|passwords.yml\|autocomplete\|kayobe-env' |
             sed -e 's|$KAYOBE_CONFIG_PATH/||'"
 
-  # - name: Deploy custom kayobe configs
-  #   ansible.builtin.template:
-  #     src: "{{ item.src }}"
-  #     dest: "{{ kayobe_base_path }}/etc/kayobe/{{ item.path | regex_replace('\\.j2$','') }}"
-  #   with_community.general.filetree: "{{ kayobe_base_path }}/etc/kayobe/"
-  #   when:
-  #     - item.state == 'file'
-  #     - item.src | regex_search('.j2')
-
   - name: Kayobe control host bootstrap
     ansible.builtin.shell:
       cmd: |
@@ -290,14 +281,6 @@
         kayobe seed host configure
     args:
       executable: /bin/bash
-
-  - name: re-add ubuntu to docker group
-    ansible.builtin.shell:
-      cmd: "sudo usermod -aG docker ubuntu"
-
-  - name: Reset ssh connection to allow user changes to affect ansible user
-    ansible.builtin.meta:
-      reset_connection
 
   - name: Kayobe seed service deploy
     ansible.builtin.shell:
