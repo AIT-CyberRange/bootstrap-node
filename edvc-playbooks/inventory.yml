@@ -5,7 +5,7 @@ all:
 
     kayobe_user: ubuntu
 
-    kayobehost_mgmt_ip: 192.168.3.9
+    kayobehost_mgmt_ip: 192.168.3.10
     kayobehost_mgmt_nic: eno8303
 
     kayobehost_idrac_nic: eno8403
@@ -18,9 +18,9 @@ all:
 
     idrac_netmask: 24
 
-    kayobevm_mgmt_ip: 192.168.4.10
+    kayobevm_mgmt_ip: 192.168.4.9
     kayobevm_mgmt_nic: enp1s0
-    kayobevm_idrac_ip: 192.168.3.10
+    kayobevm_idrac_ip: 192.168.3.9
     kayobevm_idrac_nic: enp2s0
 
     kayobevm_cpus: 4
