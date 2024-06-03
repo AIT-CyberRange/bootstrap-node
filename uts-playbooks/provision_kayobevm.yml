@@ -288,6 +288,7 @@
     args:
       executable: /bin/bash
 
+<<<<<<< HEAD:uts-playbooks/provision_kayobevm.yml
   - name: Reboot kayobevm
     ansible.builtin.shell: reboot
     async: true
@@ -320,6 +321,8 @@
     user_name: "{{ kayobe_user }}"
     kayobe_base_path: "{{ user_home_dir }}/{{ project_name }}"
   tasks:
+=======
+>>>>>>> main:edvc-playbooks/provision_kayobevm.yml
   - name: Kayobe seed service deploy
     ansible.builtin.shell:
       cmd: |
