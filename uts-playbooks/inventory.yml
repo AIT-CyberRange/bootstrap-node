@@ -1,0 +1,49 @@
+---
+all:
+  vars:
+    project_name: ait
+    # Deployment process directory name. 
+
+    kayobe_user: ubuntu
+    # Kayobe VM user for Kayobe installaion and operations.
+
+    kayobehost_system_version: 22.04
+    # Kayobe Host Ubuntu system version, provided playbooks were tested with Ubuntu 22.04.
+
+    kayobehost_mgmt_nic: eno8303
+    # Kayobe Host system interface name used for mgmtbr bridge creation (with Management VLAN in ACCESS mode).
+    kayobehost_mgmt_ip: 192.168.4.10
+    # Kayobe Host system IPv4 management address.
+    management_gw: 192.168.4.254
+    # Gateway for kayobehost_mgmt_ip address.
+    management_dns: 192.168.4.254
+    # DNS server set for Kayobe Host and Kayobe VM.
+
+    kayobehost_vm_nic: eno8403
+    # Kayobe Host system interface name used for vmbr bridge creation (with Provisioning VLAN in ACCESS mode, Management and iDRAC VLAN in TRUNK mode).
+
+    kayobevm_nic: enp1s0
+    # Kayobe VM system interface name connected to vmbr bridge from Kayobe Host. For default Ubuntu 22.04 configuration it is set to enp1s0.
+    kayobevm_mac: "fa:69:65:64:76:63"
+    # Kayobe VM system interface MAC address.
+
+    kayobevm_provision_ip: 192.168.5.9
+    # IPv4 address from provisioning network configured in Kayobe VM.
+    kayobevm_mgmt_ip: 192.168.4.9
+    # IPv4 address from management network configured in Kayobe VM.
+    management_vlan: 4
+    # Management network VLAN, used to configure VLAN subinterface in Kayobe VM.
+    kayobevm_idrac_ip: 192.168.3.9
+    # IPv4 address from idrac network configured in Kayobe VM.
+
+    kayobevm_cpus: 4
+    # Amount of vCPUs assigned to Kayobe VM, recommended min 4.
+    kayobevm_ram: "{{ 8 * 1024 }}"
+    # Amount of RAM in MB assigned to Kayobe VM, recommended min 8192.
+    kayobevm_disk_size_gb: 200
+    # Virtual disk size in GB for Kayobe VM usage, recommended min 200 GB.
+
+  hosts:
+    kayobevm:
+      ansible_host: "{{ kayobevm_mgmt_ip }}"
+      ansible_user: "{{ kayobe_user }}"

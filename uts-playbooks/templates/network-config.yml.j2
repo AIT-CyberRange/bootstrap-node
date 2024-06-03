@@ -1,0 +1,17 @@
+#network-config
+version: 2
+ethernets:
+  {{ kayobevm_nic }}:
+    dhcp4: false
+    addresses: [{{ kayobevm_provision_ip }}/24]
+    match:
+      macaddress: {{ kayobevm_mac }}
+vlans:
+  {{ kayobevm_nic }}.{{ management_vlan }}:
+    id: {{ management_vlan }}
+    link: {{ kayobevm_nic }}
+    dhcp4: false
+    addresses: [{{ kayobevm_mgmt_ip }}/24]
+    gateway4: {{ management_gw }}
+    nameservers:
+      addresses: [{{ management_dns }}]

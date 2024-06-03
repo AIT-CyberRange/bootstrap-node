@@ -1,0 +1,18 @@
+network:
+  version: 2
+  ethernets:
+    eno8303:
+      dhcp4: false
+    eno8403:
+      dhcp4: false
+  bridges:
+    mgmtbr:
+      interfaces: [eno8303]
+      addresses: [{{ kayobehost_mgmt_ip }}/24]
+      gateway4: {{ management_gw }}
+      nameservers:
+        addresses: [{{ management_dns }}]
+      dhcp4: false
+    vmbr:
+      interfaces: [eno8403]
+      dhcp4: false

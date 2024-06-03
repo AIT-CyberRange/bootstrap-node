@@ -3,7 +3,7 @@
 # Configuration of Baseboard Management Controllers (BMCs).
 
 # Type of host's BMC. Currently only idrac is supported.
-#bmc_type:
+bmc_type: idrac
 
 # Address to use to access a host's BMC via IPMI.
 #ipmi_address:
