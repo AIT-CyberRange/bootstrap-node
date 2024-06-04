@@ -78,9 +78,11 @@
       become: True
 
     - name: Ensure kayobevm host entry exists in /etc/hosts
-      ansible.builtin.lineinfile:
+      ansible.builtin.blockinfile:
         path: /etc/hosts
-        line: "{{ kayobevm_mgmt_ip }} kayobevm"
+        block: |
+          {{ kayobevm_mgmt_ip }} kayobevm
+        marker: "# {mark} ANSIBLE MANAGED BLOCK FOR KAYOBEVM"
       become: True
 
     - name: Check if libvirt works after installation
@@ -142,15 +144,16 @@
       when: var_lib_disk_available.stdout|float < kayobevm_disk_size_gb * 1000000
 
   - name: Reconfigure networking
-    when: ansible_default_ipv4.interface != "mgmtbr"
     block:
     - name: Push netplan configuration file
       ansible.builtin.template:
        src: "templates/01-kayobe-config.yaml.j2"
        dest: "/etc/netplan/01-kayobe-config.yaml"
       become: True
+      register: netplan_config_file
 
     - name: Run netplan apply
+      when: netplan_config_file.changed
       ansible.builtin.shell: netplan apply
       become: True
 
@@ -163,8 +166,7 @@
         --vcpus {{ kayobevm_cpus }}
         --disk path=/var/lib/libvirt/images/kayobevm/kayobevm.qcow2,size={{ kayobevm_disk_size_gb }}
         --os-variant ubuntu22.04
-        --network bridge=mgmtbr,mac=fa:69:6d:67:6d:74,model=virtio
-        --network bridge=idracbr,mac=fa:69:64:72:61:63,model=virtio
+        --network bridge=vmbr,mac={{ kayobevm_mac }},model=virtio
         --graphics none
         --events on_reboot=restart
         --virt-type kvm
@@ -204,9 +206,9 @@
         executable: /bin/bash
       delegate_to: localhost
 
-    - name: Install pip and venv
+    - name: Install pip, venv, and ipmitool
       ansible.builtin.apt:
-        name: [python3-pip, python3-venv]
+        name: [python3-pip, python3-venv, ipmitool]
         update_cache: true
       become: True
 
@@ -260,6 +262,10 @@
           source $KAYOBE_BASE_PATH/src/kayobe/kayobe-complete
           source $KAYOBE_BASE_PATH/kayobe-env
 
+          if [ -f $KAYOBE_BASE_PATH/etc/kolla/admin-openrc.sh ]; then
+            source $KAYOBE_BASE_PATH/etc/kolla/admin-openrc.sh
+          fi
+
           alias ll='ls -lhA'
 
           alias kayobeconf="grep --color=always -Irnve '^$\|^#' $KAYOBE_CONFIG_PATH/* |
@@ -282,10 +288,53 @@
     args:
       executable: /bin/bash
 
+<<<<<<< HEAD:uts-playbooks/provision_kayobevm.yml
+  - name: Reboot kayobevm
+    ansible.builtin.shell: reboot
+    async: true
+    poll: 0
+    ignore_errors: true
+    become: true
+
+  - name: Wait 30 seconds for VM to power off
+    pause:
+      seconds: 30
+
+- hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Boot kayobevm via virsh
+    ansible.builtin.shell:
+      cmd: virsh start kayobevm
+    become: true
+
+  - name: Wait for kayobevm to be reachable
+    ansible.builtin.wait_for:
+      host: kayobevm
+      port: 22
+      delay: 20
+
+- hosts: kayobevm
+  gather_facts: false
+  vars:
+    user_home_dir: "/home/{{ kayobe_user }}"
+    user_name: "{{ kayobe_user }}"
+    kayobe_base_path: "{{ user_home_dir }}/{{ project_name }}"
+  tasks:
+=======
+>>>>>>> main:edvc-playbooks/provision_kayobevm.yml
   - name: Kayobe seed service deploy
     ansible.builtin.shell:
       cmd: |
         source {{ user_home_dir }}/.profile &&
         kayobe seed service deploy
+    args:
+      executable: /bin/bash
+
+  - name: kayobe overcloud host image build
+    ansible.builtin.shell:
+      cmd: >
+        source {{ user_home_dir }}/.profile &&
+        kayobe overcloud host image build
     args:
       executable: /bin/bash

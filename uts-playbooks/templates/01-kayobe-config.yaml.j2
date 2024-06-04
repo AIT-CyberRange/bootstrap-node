@@ -8,11 +8,11 @@ network:
   bridges:
     mgmtbr:
       interfaces: [eno8303]
-      addresses: [{{ kayobehost_mgmt_ip }}/{{ management_netmask }}]
+      addresses: [{{ kayobehost_mgmt_ip }}/24]
       gateway4: {{ management_gw }}
       nameservers:
         addresses: [{{ management_dns }}]
       dhcp4: false
-    idracbr:
+    vmbr:
       interfaces: [eno8403]
       dhcp4: false

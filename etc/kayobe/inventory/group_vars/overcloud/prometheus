@@ -1,0 +1,1 @@
+prometheus_instance_label: "{{ ansible_facts.hostname }}"

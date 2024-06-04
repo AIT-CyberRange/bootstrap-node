@@ -33,7 +33,14 @@
 #overcloud_dib_elements_default:
 
 # List of additional DIB elements. Default is none.
-#overcloud_dib_elements_extra:
+overcloud_dib_elements_extra:
+  - "block-device-efi"
+  - "devuser"
+
+overcloud_dib_env_vars_extra:
+  DIB_DEV_USER_USERNAME: "devuser"
+  DIB_DEV_USER_PASSWORD: "devuser"
+  DIB_DEV_USER_PWDLESS_SUDO: "yes"
 
 # List of DIB elements. Default is a combination of
 # overcloud_dib_elements_default and overcloud_dib_elements_extra.

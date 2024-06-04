@@ -11,7 +11,22 @@
 # Dict mapping overcloud Ansible group names to lists of hosts in the group.
 # As a special case, the group 'ignore' can be used to specify hosts that
 # should not be added to the inventory.
-#overcloud_group_hosts_map:
+overcloud_group_hosts_map:
+  controllers:
+    - S3LS211
+    - S3LS212
+    - S3LS213
+  compute:
+    - S3LS211
+    - S3LS212
+    - S3LS213
+    - S3LS214
+    - S3LS215
+  storage:
+    - S3LS211
+    - S3LS212
+    - S3LS213
+    - S3LS214
 
 # To prevent some network issues you can choose to disable cloud-init
 #disable_cloud_init:

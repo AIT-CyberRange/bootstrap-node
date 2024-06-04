@@ -7,9 +7,18 @@
 # define the group-specific attributes of networks. The following example shows
 # a basic configuration for a network called "example":
 #
-mgmt_interface: enp1s0
-idrac_interface: enp2s0
+# example_interface: eth0
 #
+# Global network attributes such as subnet CIDRs are typically configured in
+# etc/kayobe/networks.yml.
+#
+# Further information on the available network attributes is provided in the
+# network configuration reference in the Kayobe documentation.
+
+provision_interface: enp1s0
+idrac_interface: enp1s0.3
+management_interface: enp1s0.4
+
 # Global network attributes such as subnet CIDRs are typically configured in
 # etc/kayobe/networks.yml.
 #

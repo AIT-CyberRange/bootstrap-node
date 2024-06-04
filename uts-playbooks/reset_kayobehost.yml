@@ -1,0 +1,9 @@
+- name: Compare local Servers.csv with list of nodes found in bifrost
+  hosts: kayobehost
+  gather_facts: false
+  tasks:
+    # fail: msg=debug
+  - name: List all packages that have been installed since X
+  # This is for date 2024-01-23
+  # grep "status installed" /var/log/dpkg.log | awk '$1 >= "2024-01-23" {print $5}'
+  

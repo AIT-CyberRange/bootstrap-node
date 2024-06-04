@@ -10,7 +10,10 @@
 # Storage network interface configuration.
 
 # List of networks to which storage nodes are attached.
-#storage_network_interfaces:
+storage_network_interfaces:
+  - management
+  - provision
+  - external
 
 # List of default networks to which storage nodes are attached.
 #storage_default_network_interfaces:

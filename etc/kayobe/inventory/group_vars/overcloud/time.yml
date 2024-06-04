@@ -1,0 +1,7 @@
+chrony_ntp_servers:
+  - server: 192.168.4.11
+    type: server
+  - server: 192.168.4.12
+    type: server
+  - server: 192.168.4.13
+    type: server

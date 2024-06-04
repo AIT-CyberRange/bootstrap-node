@@ -23,10 +23,10 @@
 # Diskimage-builder configuration.
 
 # DIB base OS element. Default is {{ os_distribution }}.
-#kolla_bifrost_dib_os_element:
+kolla_bifrost_dib_os_element: ubuntu
 
 # DIB image OS release. Default is {{ os_release }}.
-#kolla_bifrost_dib_os_release:
+kolla_bifrost_dib_os_release: jammy
 
 # List of default DIB elements. Default is ["enable-serial-console", "vm"].
 #kolla_bifrost_dib_elements_default:

@@ -7,7 +7,7 @@
 # define the group-specific attributes of networks. The following example shows
 # a basic configuration for a network called "example":
 #
-mgmt_interface: virbr0
+# example_interface: eth0
 #
 # Global network attributes such as subnet CIDRs are typically configured in
 # etc/kayobe/networks.yml.

@@ -1,0 +1,312 @@
+- name: PXE Boot all nodes in the CSV
+  hosts: kayobevm
+  gather_facts: true
+  vars:
+    user_home_dir: "{{ ansible_env.HOME }}"
+    user_name: "{{ ansible_env.USER }}"
+    kayobe_base_path: "{{ user_home_dir }}/{{ project_name }}"
+
+  tasks:
+  - name: Read Servers.csv
+    community.general.read_csv:
+      path: "{{ inventory_dir | dirname }}/Servers.csv"
+      key: IPMI
+    register: servers_data
+
+  - name: Ensure all nodes in Servers.csv are powered off to start
+    ansible.builtin.shell: |
+      ipmitool -I lanplus -H {{ item.value.IPMI }} -U {{ item.value.IPMIuser }} -P {{ item.value.IPMIpass }} power off
+    loop: "{{ servers_data.dict | dict2items }}"
+    loop_control:
+      label: "{{ item.key }}"
+    ignore_errors: yes
+    register: power_off_result
+    failed_when: false
+
+  - name: Check for 'not supported in present state' error and continue execution
+    ansible.builtin.debug:
+      msg: "{{ item.stderr }}"
+    loop: "{{ power_off_result.results }}"
+    when: "'not supported in present state' in item.stderr"
+
+  - name: Wait 30 seconds for all hosts to be shut down
+    ansible.builtin.pause:
+      seconds: 30
+
+  # TODO: low priority, but clearing the leases list doesn't seem to inform dnsmasq correctly
+  - name: Clear the dhcp leases from bifrost dnsmasq
+    community.docker.docker_container_exec:
+      container: bifrost_deploy
+      command: /bin/bash -c "echo > /var/lib/misc/dnsmasq.leases && systemctl restart dnsmasq"
+
+  - name: Get IPMI addresses set in bifrost
+    community.docker.docker_container_exec:
+      container: bifrost_deploy
+      command: mysql -NB -e "SELECT JSON_UNQUOTE(JSON_EXTRACT(driver_info, '$.ipmi_address')) AS ipmi_address FROM ironic.nodes"
+    register: bifrost_ipmi_addresses
+
+  - name: Set pxe and power on for all nodes in csv
+    ansible.builtin.shell: |
+      ipmitool -I lanplus -H {{ item.value.IPMI }} -U {{ item.value.IPMIuser }} -P {{ item.value.IPMIpass }} chassis bootdev pxe options=efiboot
+      ipmitool -I lanplus -H {{ item.value.IPMI }} -U {{ item.value.IPMIuser }} -P {{ item.value.IPMIpass }} power on
+    when: item.value.IPMI not in bifrost_ipmi_addresses.stdout_lines
+    loop: "{{ servers_data.dict | dict2items }}"
+    loop_control:
+      label: "{{ item.key }}"
+    register: systems_ipmi_on
+
+  - name: Wait 20 minutes for all nodes to post TWICE and then pxe boot from bifrost, load OS, and register
+    ansible.builtin.pause:
+      minutes: 20
+    when: systems_ipmi_on.changed
+
+  - name: Get inventory in bifrost
+    community.docker.docker_container_exec:
+      container: bifrost_deploy
+      command: mysql -NB -e "SELECT JSON_UNQUOTE(JSON_EXTRACT(driver_info, '$.ipmi_address')) AS ipmi_address, uuid FROM ironic.nodes"
+    register: bifrost_output
+
+  - name: Update driver_info with IPMI credentials
+    community.docker.docker_container_exec:
+      container: bifrost_deploy
+      command: >
+        mysql -e "UPDATE ironic.nodes
+          SET driver_info = JSON_SET(
+            driver_info,
+            '$.ipmi_username', '{{ item.IPMIuser }}',
+            '$.ipmi_password', '{{ item.IPMIpass }}'
+          )
+          WHERE JSON_UNQUOTE(JSON_EXTRACT(driver_info, '$.ipmi_address')) = '{{ item.IPMI }}'"
+    loop: "{{ servers_data.dict.values()  | list }}"
+    loop_control:
+      label: "{{ item.IPMI }}"
+
+  - name: Convert bifrost output to CSV format (IPMI,UUID)
+    ansible.builtin.set_fact:
+      bifrost_csv: "IPMI,UUID\n{{ bifrost_output.stdout_lines | map('regex_replace', '\t', ',') | list | join('\n') }}"
+
+  - name: Save bifrost CSV to a file
+    ansible.builtin.copy:
+      content: "{{ bifrost_csv }}"
+      dest: "{{ inventory_dir }}/bifrost.csv"
+
+  - name: Read bifrost.csv
+    community.general.read_csv:
+      path: "{{ inventory_dir }}/bifrost.csv"
+      key: IPMI
+    register: bifrost_data
+
+  - name: Read Servers.csv
+    community.general.read_csv:
+      path: "{{ inventory_dir | dirname }}/Servers.csv"
+      key: IPMI
+    register: servers_data
+
+  - name: Prepare server_uuid data
+    ansible.builtin.set_fact:
+      server_uuid_data: "{{ server_uuid_data | default([]) +
+          [{ 
+            'IPMI': item.key,
+            'Hostname': item.value.Hostname,
+            'UUID': bifrost_data.dict[item.key].UUID
+          }]
+        }}"
+    loop: "{{ servers_data.dict | dict2items }}"
+    when: item.key in bifrost_data.dict
+
+  - name: Write server_uuid.csv
+    ansible.builtin.copy:
+      content: |
+        IPMI,Hostname,UUID
+        {% for item in server_uuid_data %}
+        {{ item.IPMI }},{{ item.Hostname }},{{ item.UUID }}
+        {% endfor %}
+      dest: "{{ inventory_dir }}/server_uuids.csv"
+
+  - name: Read server_uuids.csv file
+    community.general.read_csv:
+      path: "{{ inventory_dir }}/server_uuids.csv"
+    register: server_uuids
+    delegate_to: localhost
+
+  - name: Set names of nodes based on server_uuids.csv
+    community.docker.docker_container_exec:
+      container: bifrost_deploy
+      command: baremetal node set {{ item.UUID }} --name {{ item.Hostname }}
+      env: OS_CLOUD=bifrost
+    loop: "{{ server_uuids.list }}"
+
+  - name: Set nodes_csv_count
+    ansible.builtin.shell:
+      cmd: "grep -v IPMI {{ inventory_dir | dirname }}/Servers.csv | wc -l"
+    register: nodes_csv_count
+
+  - name: Set bifrost_csv_count
+    ansible.builtin.shell:
+      cmd: "grep -v IPMI {{ inventory_dir }}/bifrost.csv | wc -l"
+    register: bifrost_csv_count
+
+  - name: Show counts
+    ansible.builtin.debug:
+      msg:
+        Bifrost count: "{{ bifrost_csv_count.stdout | int }}"
+        Servers count: "{{ nodes_csv_count.stdout | int }}"
+
+  - name: Exit if the counts are wrong
+    ansible.builtin.fail:
+      msg: "Found {{ nodes_csv_count.stdout | int }} nodes in csv, more than in bifrost: {{ bifrost_csv_count.stdout | int }}"
+    when: nodes_csv_count.stdout | int > bifrost_csv_count.stdout | int
+
+  - name: Clean up generated files
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    with_items:
+      - "{{ inventory_dir }}/bifrost.csv"
+      - "{{ inventory_dir }}/server_uuids.csv"
+    delegate_to: localhost
+
+  - name: kayobe overcloud inventory discover
+    ansible.builtin.shell:
+      cmd: >
+        source {{ user_home_dir }}/.profile &&
+        kayobe overcloud inventory discover
+    args:
+      executable: /bin/bash
+
+  - name: Remove lines with UUIDs from inventory/overcloud and network-allocation.yml
+    ansible.builtin.lineinfile:
+      path: "{{ item }}"
+      state: absent
+      regexp: '^.*\b[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\b.*$'
+    with_items:
+      - "{{ kayobe_base_path }}/etc/kayobe/inventory/overcloud"
+      - "{{ kayobe_base_path }}/network-allocation.yml"
+
+  - name: Read Servers.csv
+    community.general.read_csv:
+      path: "{{ inventory_dir | dirname }}/Servers.csv"
+    register: servers_data
+
+  - name: Load network-allocation.yml
+    ansible.builtin.include_vars:
+      file: "{{ kayobe_base_path }}/etc/kayobe/network-allocation.yml"
+      name: network_allocation
+
+  - name: Update Management IPs based on Servers.csv
+    ansible.builtin.set_fact:
+      updated_management_ips: "{{ updated_management_ips | default({}) | combine({ item.Hostname: item.ManagementIP }) }}"
+    loop: "{{ servers_data.list }}"
+    when: "item.Hostname in network_allocation.management_ips.keys()"
+
+  - name: Update Provision IPs based on Servers.csv
+    ansible.builtin.set_fact:
+      updated_provision_ips: "{{ updated_provision_ips | default({}) | combine({ item.Hostname: item.ProvisionIP }) }}"
+    loop: "{{ servers_data.list }}"
+    when: "item.Hostname in network_allocation.provision_ips.keys()"
+
+  - name: Combine original and updated Management IPs
+    ansible.builtin.set_fact:
+      network_allocation: "{{ network_allocation | combine({'management_ips': updated_management_ips}, recursive=True) }}"
+
+  - name: Combine original and updated Provision IPs
+    ansible.builtin.set_fact:
+      network_allocation: "{{ network_allocation | combine({'provision_ips': updated_provision_ips}, recursive=True) }}"
+
+  - name: Write updated network-allocation.yml
+    ansible.builtin.copy:
+      content: "{{ network_allocation | to_nice_yaml(indent=2) }}"
+      dest: "{{ kayobe_base_path }}/etc/kayobe/network-allocation.yml"
+
+  - name: Construct hosts block from Servers.csv
+    ansible.builtin.set_fact:
+      hosts_block: |
+        {% for server in servers_data.list %}
+        {{ server.ManagementIP }} {{ server.Hostname }}
+        {% endfor %}
+
+  - name: Update /etc/hosts with Servers.csv entries 
+    ansible.builtin.blockinfile:
+      path: /etc/hosts
+      block: "{{ hosts_block }}"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK FOR SERVERS"
+      create: false
+      state: present
+    become: true
+
+  - name: Generate limit string with nodes in Servers.csv
+    ansible.builtin.set_fact:
+      limit_server_string: "{{ servers_data.list | map(attribute='Hostname') | join(',') }}"
+
+  - name: kayobe overcloud provision
+    ansible.builtin.shell:
+      cmd: >
+        source {{ user_home_dir }}/.profile &&
+        kayobe overcloud provision \
+          -v -l {{ limit_server_string }}
+    args:
+      executable: /bin/bash
+
+    # rescue:
+    # - name: In case of initial failure, create a list of systems where it failed
+    #   community.docker.docker_container_exec:
+    #     container: bifrost_deploy
+    #     command: /bin/bash -c "baremetal node list | grep 'power on' | grep -v active | awk '{ print $4 }'"
+    #     env: OS_CLOUD=bifrost
+    #   register: unprovisioned_list
+
+    # - name: Show list of systems where provision failed
+    #   ansible.builtin.debug:
+    #     msg: "Rebuilding {{ unprovisioned_list }}"
+
+    # - name: Run bifrost baremetal node rebuild on failed list
+    #   community.docker.docker_container_exec:
+    #     container: bifrost_deploy
+    #     command: "baremetal node rebuild {{ item }}"
+    #     env: OS_CLOUD=bifrost
+    #   loop: "{{ unprovisioned_list }}"
+    
+    # - name: Wait for rescue to boot centos and then ubuntu
+    #   ansible.builtin.pause:
+    #     minutes: 15
+
+  - name: Wait for Ubuntu install and TWO reboots.
+    ansible.builtin.pause:
+      minutes: 15
+
+  - name: kayobe overcloud host configure
+    ansible.builtin.shell:
+      cmd: >
+        source {{ user_home_dir }}/.profile &&
+        kayobe overcloud host configure \
+          -v -l {{ limit_server_string }}
+    args:
+      executable: /bin/bash
+
+  - name: Remove and re-add SSH keys
+    ansible.builtin.shell:
+      cmd: |
+        ssh-keygen -R {{ item.Hostname }}
+        ssh-keygen -R {{ item.ManagementIP }}
+        ssh-keyscan -H {{ item.Hostname }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H {{ item.ManagementIP }} >> ~/.ssh/known_hosts
+    loop: "{{ servers_data.list }}"
+    args:
+      executable: /bin/bash
+
+  # - name: Install linux firmware, modules, and the python openstackclient, and reboot
+  #   ansible.builtin.shell:
+  #     cmd: >
+  #       source {{ user_home_dir }}/.profile &&
+  #       kayobe overcloud host package update --packages linux-firmware,python3-pip \
+  #         -l {{ limit_server_string }} &&
+  #       kayobe overcloud host command run --command "pip3 install python-openstackclient" \
+  #         -l {{ limit_server_string }} &&
+  #       kayobe overcloud host command run --command "shutdown -r" --become \
+  #         -l {{ limit_server_string }}
+  #   args:
+  #     executable: /bin/bash
+
+  # - name: Wait for the last reboot
+  #   ansible.builtin.pause:
+  #     minutes: 10

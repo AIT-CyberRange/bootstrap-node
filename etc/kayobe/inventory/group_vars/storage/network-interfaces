@@ -15,6 +15,16 @@
 # Further information on the available network attributes is provided in the
 # network configuration reference in the Kayobe documentation.
 
+management_interface: mgmt.4
+management_parent: bond0
+provision_interface: eno1np0
+external_interface: bond0
+external_bond_slaves:
+  - eno1np0
+  - eno2np1
+# management_interface: eno1np0
+# # tun_interface: eno1np0.5
+
 ###############################################################################
 # Dummy variable to allow Ansible to accept this file.
 workaround_ansible_issue_8743: yes
