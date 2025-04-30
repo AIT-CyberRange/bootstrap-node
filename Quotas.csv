@@ -1,0 +1,22 @@
+Quotas for all AIT OpenStack projects. Values indicate deviation from default
+Domain/Project,Default,Nuclear/*,AECID/*,Pentest/*,CBT-DEV/*,CBT-DEV/Deployment
+cores,20,,50,50,240,60
+instances,10,,100,100,120,30
+ram,51200,,100000,99712,491520,122880
+networks,100,,,,,
+ports,500,,,,,
+rbac_policies,10,,,,,
+routers,10,,,,,
+subnets,100,,,,,
+subnet_pools,-1,,,,,
+fixed-ips,-1,,,,,
+injected-file-size,10240,,,,,
+injected-path-size,255,,,,,
+injected-files,5,,,,,
+key-pairs,100,,,,,
+properties,128,,,,,
+server-groups,10,,,,,
+server-group-members,10,,,,,
+floating-ips,120,,,,,
+secgroup-rules,100,,,,,
+secgroups,10,,,,,

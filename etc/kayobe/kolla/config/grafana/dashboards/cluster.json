@@ -1,0 +1,615 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 96,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 11,
+      "panels": [],
+      "title": "Services",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "FAIL"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "OK"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "name",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.1",
+      "repeat": "Controller",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"neutron_server\"} > time() - 60) by (name)",
+          "format": "time_series",
+          "instant": true,
+          "legendFormat": "Neutron Server",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"nova_conductor\"} > time() - 60) by (name)",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Nova Conductor",
+          "range": false,
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"nova_api\"} > time() - 60) by (name)",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Nova API",
+          "range": false,
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"nova_scheduler\"} > time() - 60) by (name)",
+          "format": "time_series",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Nova Scheduler",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"keystone\"} > time() - 60) by (name)",
+          "format": "time_series",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Keystone",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"mariadb\"} > time() - 60) by (name)",
+          "format": "time_series",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "MariaDB",
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"haproxy\"} > time() - 60) by (name)",
+          "format": "time_series",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "HAProxy",
+          "range": false,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"rabbitmq\"} > time() - 60) by (name)",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "RabbitMQ",
+          "range": false,
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"placement_api\"} > time() - 60) by (name)",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Placement API",
+          "range": false,
+          "refId": "I"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count(container_last_seen{instance=\"$Controller\", name=\"horizon\"} > time() - 60) by (name)",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Horizon",
+          "range": false,
+          "refId": "J"
+        }
+      ],
+      "title": "Controller Status - $Controller",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "FAIL"
+                },
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "OK"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "pattern": ".*",
+                "result": {
+                  "color": "yellow",
+                  "index": 2
+                }
+              },
+              "type": "regex"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 9
+      },
+      "id": 32,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "name",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.1",
+      "repeat": "Compute",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "libvirt_up{instance=\"$Compute\", job=\"libvirt_exporter\"}",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Libvirt",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "openstack_nova_agent_state{hostname=\"$Compute\", service=\"nova-compute\"}",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Nova compute",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "openstack_neutron_agent_state{hostname=\"$Compute\",service=\"ovn-controller\"}",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "OVN Controller",
+          "range": false,
+          "refId": "C"
+        }
+      ],
+      "title": "Compute Status - $Compute",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 17,
+      "panels": [],
+      "title": "Resources",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 16
+      },
+      "id": 23,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.1",
+      "repeat": "Compute",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "scalar(node_load1{instance=\"$Compute\"}) / count(count(node_cpu_seconds_total{instance=\"$Compute\"}) by (cpu))",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Host CPU Load",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "(node_memory_MemTotal_bytes{instance=\"$Compute\"} - node_memory_MemAvailable_bytes{instance=\"$Compute\"}) / node_memory_MemTotal_bytes{instance=\"$Compute\"} ",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Host Memory Usage",
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "1 - (node_filesystem_avail_bytes{instance=\"$Compute\", mountpoint=\"/\"} / node_filesystem_size_bytes{instance=\"$Compute\", mountpoint=\"/\"})",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Host Disk Usage",
+          "range": false,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "openstack_placement_resource_usage{hostname=\"$Compute\", resourcetype=\"VCPU\"} / ((openstack_placement_resource_total{hostname=\"$Compute\", resourcetype=\"VCPU\"} - openstack_placement_resource_reserved{hostname=\"$Compute\", resourcetype=\"VCPU\"}) * openstack_placement_resource_allocation_ratio{hostname=\"$Compute\", resourcetype=\"VCPU\"})",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Nova vCPU Usage",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "openstack_placement_resource_usage{hostname=\"$Compute\", resourcetype=\"MEMORY_MB\"} / ((openstack_placement_resource_total{hostname=\"$Compute\", resourcetype=\"MEMORY_MB\"} - openstack_placement_resource_reserved{hostname=\"$Compute\", resourcetype=\"MEMORY_MB\"}) * openstack_placement_resource_allocation_ratio{hostname=\"$Compute\", resourcetype=\"MEMORY_MB\"})",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Nova Memory Usage",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "openstack_placement_resource_usage{hostname=\"$Compute\", resourcetype=\"DISK_GB\"} / ((openstack_placement_resource_total{hostname=\"$Compute\", resourcetype=\"DISK_GB\"} - openstack_placement_resource_reserved{hostname=\"$Compute\", resourcetype=\"DISK_GB\"}) * openstack_placement_resource_allocation_ratio{hostname=\"$Compute\", resourcetype=\"DISK_GB\"})",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "Nova Disk Usage",
+          "range": false,
+          "refId": "F"
+        }
+      ],
+      "title": "Resource Usage - $Compute",
+      "type": "stat"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "PBFA97CFB590B2093"
+        },
+        "definition": "label_values({job=\"openstack_exporter\", service=\"nova-scheduler\"}, hostname)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": false,
+        "name": "Controller",
+        "options": [],
+        "query": {
+          "qryType": 5,
+          "query": "label_values({job=\"openstack_exporter\", service=\"nova-scheduler\"}, hostname)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "PBFA97CFB590B2093"
+        },
+        "definition": "label_values(container_tasks_state,instance)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": false,
+        "name": "Compute",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(container_tasks_state,instance)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now-10s"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Cluster overview",
+  "uid": "fdlwebisn5ekge",
+  "version": 33,
+  "weekStart": ""
+}

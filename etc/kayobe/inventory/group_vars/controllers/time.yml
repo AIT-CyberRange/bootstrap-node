@@ -1,0 +1,13 @@
+chrony_ntp_servers:
+  - server: time1.drei.host
+    type: server
+  - server: time2.drei.host
+    type: server
+  - server: time3.drei.host
+    type: server
+  - server: 192.168.4.11
+    type: peer
+  - server: 192.168.4.12
+    type: peer
+  - server: 192.168.4.13
+    type: peer

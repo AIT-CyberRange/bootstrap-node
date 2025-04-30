@@ -1,0 +1,17 @@
+---
+# Add extra Kolla global configuration here.
+# drac_boot_mode: "uefi"
+
+# Kolla Networking configuration here.
+neutron_external_interface: bond0
+neutron_bridge_name: br-ext
+neutron_plugin_agent: "ovn"
+neutron_ovn_distributed_fip: true
+neutron_ovn_dhcp_agent: false
+neutron_enable_ovn_agent: true
+
+# In docs for most recent
+neutron_dns_integration: true
+neutron_dns_domain: "cyberrange.internal."
+
+kolla_external_fqdn_cert: "{{ kolla_config_path }}/certificates/external.pem"
