@@ -52,6 +52,7 @@ CBT-DEV,dev,gregorl
 CBT-DEV,dev,jungo
 CBT-DEV,dev,pfallert
 CBT-DEV,dev,reuterl
+CBT-DEV,dev,stoecklr
 CBT-DEV,dev,zelenajovaa
 CBT-DEV,dev2,allisond
 CBT-DEV,dev2,ashqarg
@@ -62,6 +63,7 @@ CBT-DEV,dev2,pfallert
 CBT-DEV,dev2,reuterl
 CBT-DEV,dev2,schusterf
 CBT-DEV,dev2,steffand
+CBT-DEV,dev2,stoecklr
 CBT-DEV,dev2,zelenajovaa
 CBT-DEV,dev3,allisond
 CBT-DEV,dev3,ashqarg
@@ -70,6 +72,7 @@ CBT-DEV,dev3,gregorl
 CBT-DEV,dev3,jungo
 CBT-DEV,dev3,pfallert
 CBT-DEV,dev3,reuterl
+CBT-DEV,dev3,stoecklr
 CBT-DEV,dev3,zelenajovaa
 CBT-DEV,gregorl,gregorl
 CBT-DEV,jungo,jungo
